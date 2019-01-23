@@ -61,7 +61,7 @@ import pickle
 USE_GETATTR = False
 
 
-class ImageError(Excepion):
+class ImageError(Exception):
     pass
 
 class CoordinateError(ImageError):
@@ -109,10 +109,10 @@ class Image:
             """
             if name == "colors":
                 return set(self.__colors)
-                classname = self.__class__.__name__
-                if name in frozenset({"background", "width", "height"}):
-                    return self.__dict__["_{classname}__{name}".format(**locals())]
-                raise AttributeError("'{classname}' object has no"
+            classname = self.__class__.__name__
+            if name in frozenset({"background", "width", "height"}):
+                return self.__dict__["__{classname}__{name}".format(**locals())]
+            raise AttributeError("'{classname}' object has no"
                                     "attribute '{name}'".format(**locals()))
 
     else:
@@ -134,29 +134,28 @@ class Image:
 
     def __getitem__(self, coordinate):
          """Returns the color at the given (x, y) coordinate; this will
-        be the background color if the color has never been set
-        """
-        assert len(coordinate) == 2, "coordinate should be a 2-tuple"
-        if (not (0 <= coordinate[0] < self.width) or
-            not (0 <= coordinate[1] < self.height)):
-            raise CoordinateError(str(coordinate))
-        return self.__data.get(tuple(coordinate), self.__background)
+         be the background color if the color has never been set
+         """
+         assert len(coordinate) == 2, "coordinate should be a 2-tuple"
+         if (not (0 <= coordinate[0] < self.width) or
+             not (0 <= coordinate[1] < self.height)):
+             raise CoordinateError(str(coordinate))
+         return self.__data.get(tuple(coordinate), self.__background)
 
     def __setitem__(self, coordinate, color):
          """Sets the color at the given (x, y), coordinate
-        """
-        assert len(coordinate) == 2, "coordinate shoud be a 2-tuple"
-        if (not (0 <= coordinate[0] < self.width) or
+         """
+         assert len(coordinate) == 2, "coordinate should be a 2-tuple"
+         if (not (0 <= coordinate[0] < self.width) or
             not (0 <= coordinate[1] < self.height)):
-        if color == self.__background:
-            self.__data.pop(tuple(coordinate), None)
-        else:
-            self.__data[tuple(coordinate)] = color
-            self._colors.add(color)
+            if color == self.__background:
+                self.__data.pop(tuple(coordinate), None)
+            else:
+                self.__data[tuple(coordinate)] = color
+                self.__colors.add(color)
 
     def __delitem__(self, coordinate):
         """Deletes the color at the given (x, y) coordinate
-
         In effect this makes the coordinate's color the background color.
         """
         assert len(coordinate) == 2, "coordinate should be a 2-tuple"
@@ -166,8 +165,7 @@ class Image:
         self.__data.pop(tuple(coordinate), None)
 
     def save(self, filename=None):
-          """Saves the current image, or the one specified by filename
-
+        """Saves the current image, or the one specified by filename
         If filename is specified the internal filename is set to it.
         """
         if filename is not None:
@@ -187,8 +185,7 @@ class Image:
                 fh.close()
 
     def load(self, filename=None):
-          """Loads the current image, or the one specified by filename
-
+        """Loads the current image, or the one specified by filename
         If filename is specified the internal filename is set to it.
         """
         if filename is not None:
@@ -230,6 +227,9 @@ class Image:
             for x in range(32, 127):
                 if chr(x) == '"':
                     continue
+                for y in range(32, 127):
+                    if chr(y) == '"':
+                        continue
                 chars.append(chr(x) + chr(y))
         chars.reverse()
         if count > len(chars):
@@ -250,7 +250,7 @@ class Image:
             for y in range(self.height):
                 row = []
                 for x in range(self.width):
-                    color = self.__data.get((x, y) self.__background)
+                    color = self.__data.get((x, y), self.__background)
                     row.append(char_for_colour[color])
                 fh.write('"{0}",\n'.format("".join(row)))
             fh.write("};\n")
